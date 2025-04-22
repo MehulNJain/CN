@@ -1,0 +1,45 @@
+//Client_Side
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+
+int main(void)
+{
+    int sockfd, a, b, c, length;
+    struct sockaddr_in client;
+    socklen_t clientAddrLen;
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    client.sin_family = AF_INET;
+    client.sin_port = 6210;
+    client.sin_addr.s_addr = inet_addr("127.0.0.1");
+    clientAddrLen = sizeof(client);
+
+    int choice;
+    do {
+        printf("\n-------------------- Arithmetic Operations --------------------\n");
+        printf("\n1. Addition");
+        printf("\n2. Subtraction");
+        printf("\n3. Multiplication");
+        printf("\n4. Division");
+        printf("\n5. Exit");
+        printf("\nEnter your Choice: ");
+        scanf("%d", &choice);
+        if (choice == 5)
+            return 0;
+
+        printf("\nEnter the first number: ");
+        scanf("%d", &a);
+        printf("\nEnter the second number: ");
+        scanf("%d", &b);
+
+        sendto(sockfd, &a, sizeof(a), 0, (struct sockaddr*)&client, sizeof(client));
+        sendto(sockfd, &b, sizeof(b), 0, (struct sockaddr*)&client, sizeof(client));
+        sendto(sockfd, &choice, sizeof(choice), 0, (struct sockaddr*)&client, sizeof(client));
+
+        recvfrom(sockfd, &c, sizeof(c), 0, (struct sockaddr*)&client, &clientAddrLen);
+        printf("\nResult: %d\t", c);
+    } while (1);
+
+    close(sockfd);
+}

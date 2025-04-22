@@ -1,0 +1,129 @@
+2. Connection Oriented Concurrent Server Client Program for
+arithmetic operations of 2 x 2 matrix
+
+
+server.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <string.h>
+int main(void)
+{
+int s_sockfd, c_sockfd, length, pid, i, j;
+int mat1[2][2], mat2[2][2], add[2][2], sub[2][2], mul[2][2];
+struct sockaddr_in server, client;
+s_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (s_sockfd < 0) {
+perror("Cannot create socket");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(6547);
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+bind(s_sockfd, (struct sockaddr *)&server, sizeof(server));
+listen(s_sockfd, 5);
+length = sizeof(client);
+while (1) {
+c_sockfd = accept(s_sockfd, (struct sockaddr *)&client, (socklen_t *)&length);
+pid = fork();
+if (pid < 0) {
+perror("Fork failed");
+continue;
+}
+if (pid > 0) {
+close(c_sockfd);
+continue;
+} else {
+close(s_sockfd);
+read(c_sockfd, mat1, sizeof(mat1));
+read(c_sockfd, mat2, sizeof(mat2));
+for (i = 0; i < 2; i++) {
+for (j = 0; j < 2; j++) {
+add[i][j] = mat1[i][j] + mat2[i][j];
+sub[i][j] = mat1[i][j] - mat2[i][j];
+mul[i][j] = 0;
+for (int k = 0; k < 2; k++) {
+mul[i][j] += mat1[i][k] * mat2[k][j];
+}
+}
+}
+write(c_sockfd, add, sizeof(add));
+write(c_sockfd, sub, sizeof(sub));
+write(c_sockfd, mul, sizeof(mul));
+close(c_sockfd);
+exit(0);
+}
+}
+return 0;
+}
+
+
+client.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <string.h>
+int main(void)
+{
+int sockfd;
+int mat1[2][2], mat2[2][2], add[2][2], sub[2][2], mul[2][2];
+struct sockaddr_in client;
+sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (sockfd < 0) {
+perror("Cannot create socket");
+exit(1);
+}
+client.sin_family = AF_INET;
+client.sin_port = htons(6547);
+client.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (connect(sockfd, (struct sockaddr *)&client, sizeof(client)) < 0) {
+perror("Connection failed");
+exit(1);
+}
+printf("Enter elements of first 2x2 matrix:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++) {
+scanf("%d", &mat1[i][j]);
+}
+}
+printf("Enter elements of second 2x2 matrix:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++) {
+scanf("%d", &mat2[i][j]);
+}
+}
+write(sockfd, mat1, sizeof(mat1));
+write(sockfd, mat2, sizeof(mat2));
+read(sockfd, add, sizeof(add));
+read(sockfd, sub, sizeof(sub));
+read(sockfd, mul, sizeof(mul));
+printf("\nMatrix Addition Result:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++) {
+printf("%d ", add[i][j]);
+}
+printf("\n");
+}
+printf("\nMatrix Subtraction Result:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++) {
+printf("%d ", sub[i][j]);
+}
+printf("\n");
+}
+printf("\nMatrix Multiplication Result:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++) {
+printf("%d ", mul[i][j]);
+}
+printf("\n");
+}
+close(sockfd);
+return 0;
+}

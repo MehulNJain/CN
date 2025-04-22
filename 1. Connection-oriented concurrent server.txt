@@ -1,0 +1,106 @@
+1. Connection-oriented concurrent server client program for
+arithmetic operations
+
+
+server.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+int main(void) {
+int s_sockfd, c_sockfd, a, b, length, pid;
+float results[4]; // [0]=add, [1]=sub, [2]=mul, [3]=div
+struct sockaddr_in server, client;
+s_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (s_sockfd < 0) {
+perror("Socket creation failed");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(6546);
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (bind(s_sockfd, (struct sockaddr*)&server, sizeof(server)) < 0) {
+perror("Bind failed");
+exit(1);
+}
+listen(s_sockfd, 5);
+printf("Server listening on port 6546...\n");
+while (1) {
+length = sizeof(client);
+c_sockfd = accept(s_sockfd, (struct sockaddr*)&client, (socklen_t*)&length);
+if (c_sockfd < 0) {
+perror("Accept failed");
+continue;
+}
+pid = fork();
+if (pid < 0) {
+perror("Fork failed");
+continue;
+}
+if (pid > 0) {
+close(c_sockfd);
+continue;
+} else {
+// Child process
+close(s_sockfd);
+read(c_sockfd, &a, sizeof(a));
+read(c_sockfd, &b, sizeof(b));
+results[0] = a + b;
+results[1] = a - b;
+results[2] = a * b;
+results[3] = (b != 0) ? ((float)a / b) : 0;
+write(c_sockfd, results, sizeof(results));
+printf("Handled client: a=%d, b=%d => add=%.2f sub=%.2f mul=%.2f div=%.2f\n",
+a, b, results[0], results[1], results[2], results[3]);
+close(c_sockfd);
+exit(0);
+}
+}
+close(s_sockfd);
+return 0;
+}
+
+
+client.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+int main(void) {
+int sockfd, a, b;
+float results[4]; // [add, sub, mul, div]
+struct sockaddr_in server;
+sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (sockfd < 0) {
+perror("Socket creation failed");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(6546);
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (connect(sockfd, (struct sockaddr*)&server, sizeof(server)) < 0) {
+perror("Connection failed");
+exit(1);
+}
+printf("Enter two integers:\n");
+scanf("%d%d", &a, &b);
+write(sockfd, &a, sizeof(a));
+write(sockfd, &b, sizeof(b));
+read(sockfd, results, sizeof(results));
+printf("\nResults from server:\n");
+printf("Addition: %.2f\n", results[0]);
+printf("Subtraction: %.2f\n", results[1]);
+printf("Multiplication: %.2f\n", results[2]);
+if (b != 0)
+printf("Division: %.2f\n", results[3]);
+else
+printf("Division: Undefined (division by zero)\n");
+close(sockfd);
+return 0;
+}

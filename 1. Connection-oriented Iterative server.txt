@@ -1,0 +1,109 @@
+1. Connection-oriented Iterative server client program for arithmetic
+operations
+
+
+TCPClient.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+int main(void) {
+int sockfd, a, b, c, choice;
+struct sockaddr_in server;
+sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (sockfd < 0) {
+perror("CANNOT CREATE SOCKET");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(2501); // use htons
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (connect(sockfd, (struct sockaddr*)&server, sizeof(server)) < 0) {
+perror("CONNECTION FAILED");
+exit(1);
+}
+do {
+printf("\n---------------------- Arithmetic Operations ------------------\n");
+printf("1. Addition\n");
+printf("2. Subtraction\n");
+printf("3. Multiplication\n");
+printf("4. Division\n");
+printf("5. Exit\n");
+printf("Enter your choice: ");
+scanf("%d", &choice);
+if (choice == 5) {
+a = b = 0;
+write(sockfd, &a, sizeof(a));
+write(sockfd, &b, sizeof(b));
+write(sockfd, &choice, sizeof(choice));
+break;
+}
+printf("Enter the first number: ");
+scanf("%d", &a);
+printf("Enter the second number: ");
+scanf("%d", &b);
+write(sockfd, &a, sizeof(a));
+write(sockfd, &b, sizeof(b));
+write(sockfd, &choice, sizeof(choice));
+read(sockfd, &c, sizeof(c));
+printf("\nResult: %d\n", c);
+} while (1);
+close(sockfd);
+return 0;
+}
+
+
+TCPServer.c
+// tcp_server.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+int main(void) {
+int s_sockfd, c_sockfd, a, b, c, choice, len;
+struct sockaddr_in server, client;
+s_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (s_sockfd < 0) {
+perror("\nCANNOT CREATE SOCKET");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(2501); // use htons
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (bind(s_sockfd, (struct sockaddr*)&server, sizeof(server)) < 0) {
+perror("BIND FAILED");
+exit(1);
+}
+listen(s_sockfd, 1);
+len = sizeof(client);
+printf("Server waiting for connection...\n");
+c_sockfd = accept(s_sockfd, (struct sockaddr*)&client, (socklen_t*)&len);
+if (c_sockfd < 0) {
+perror("ACCEPT FAILED");
+exit(1);
+}
+while (1) {
+read(c_sockfd, &a, sizeof(a));
+read(c_sockfd, &b, sizeof(b));
+read(c_sockfd, &choice, sizeof(choice));
+if (choice == 5) break;
+switch (choice) {
+case 1: c = a + b; break;
+case 2: c = a - b; break;
+case 3: c = a * b; break;
+case 4: c = b != 0 ? a / b : 0; break;
+default: c = 0;
+}
+write(c_sockfd, &c, sizeof(c));
+printf("Processed operation %d with inputs %d and %d. Result = %d\n", choice, a, b, c);
+}
+close(c_sockfd);
+close(s_sockfd);
+return 0;
+}

@@ -1,0 +1,116 @@
+2. Connection Oriented Iterative Server Client Program for
+arithmetic operations of 2 x 2 matrix
+
+
+server.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+void print_matrix(int mat[2][2]) {
+printf("Result:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++)
+printf("%d\t", mat[i][j]);
+printf("\n");
+}
+}
+int main() {
+int sockfd;
+struct sockaddr_in server;
+int A[2][2], B[2][2], C[2][2], choice;
+sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (sockfd < 0) {
+perror("Socket creation failed");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(6547);
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) {
+perror("Connection failed");
+exit(1);
+}
+while (1) {
+printf("\n--- Matrix Operations ---\n");
+printf("1. Addition\n2. Subtraction\n3. Multiplication\n4. Exit\n");
+printf("Enter your choice: ");
+scanf("%d", &choice);
+write(sockfd, &choice, sizeof(choice));
+if (choice == 4) break;
+printf("Enter elements of Matrix A (2x2):\n");
+for (int i = 0; i < 2; i++)
+for (int j = 0; j < 2; j++)
+scanf("%d", &A[i][j]);
+printf("Enter elements of Matrix B (2x2):\n");
+for (int i = 0; i < 2; i++)
+for (int j = 0; j < 2; j++)
+scanf("%d", &B[i][j]);
+write(sockfd, A, sizeof(A));
+write(sockfd, B, sizeof(B));
+read(sockfd, C, sizeof(C));
+print_matrix(C);
+}
+close(sockfd);
+return 0;
+}
+
+
+client.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+void print_matrix(int mat[2][2]) {
+printf("Result:\n");
+for (int i = 0; i < 2; i++) {
+for (int j = 0; j < 2; j++)
+printf("%d\t", mat[i][j]);
+printf("\n");
+}
+}
+int main() {
+int sockfd;
+struct sockaddr_in server;
+int A[2][2], B[2][2], C[2][2], choice;
+sockfd = socket(AF_INET, SOCK_STREAM, 0);
+if (sockfd < 0) {
+perror("Socket creation failed");
+exit(1);
+}
+server.sin_family = AF_INET;
+server.sin_port = htons(6547);
+server.sin_addr.s_addr = inet_addr("127.0.0.1");
+if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) {
+perror("Connection failed");
+exit(1);
+}
+while (1) {
+printf("\n--- Matrix Operations ---\n");
+printf("1. Addition\n2. Subtraction\n3. Multiplication\n4. Exit\n");
+printf("Enter your choice: ");
+scanf("%d", &choice);
+write(sockfd, &choice, sizeof(choice));
+if (choice == 4) break;
+printf("Enter elements of Matrix A (2x2):\n");
+for (int i = 0; i < 2; i++)
+for (int j = 0; j < 2; j++)
+scanf("%d", &A[i][j]);
+printf("Enter elements of Matrix B (2x2):\n");
+for (int i = 0; i < 2; i++)
+for (int j = 0; j < 2; j++)
+scanf("%d", &B[i][j]);
+write(sockfd, A, sizeof(A));
+write(sockfd, B, sizeof(B));
+read(sockfd, C, sizeof(C));
+print_matrix(C);
+}
+close(sockfd);
+return 0;
+}
